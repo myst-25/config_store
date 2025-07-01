@@ -1,0 +1,88 @@
+{
+  "configs": [
+    {
+      "id": "modern-dark",
+      "name": "Modern Dark",
+      "author": "DesignPro",
+      "category": "dark",
+      "description": "A sleek dark theme with subtle animations and modern design elements. Perfect for developers who work in low-light environments with optimized contrast for long coding sessions.",
+      "featured": true,
+      "preview_image": "configs/modern-dark/preview.png",
+      "screenshots": [
+        "configs/modern-dark/screenshots/screenshot_1.png",
+        "configs/modern-dark/screenshots/screenshot_2.png"
+      ],
+      "download_url": "configs/modern-dark/config.json",
+      "download_count": 1247,
+      "created_at": "2024-12-01T10:30:00Z",
+      "issue_number": null
+    },
+    {
+      "id": "light-minimal",
+      "name": "Light Minimal",
+      "author": "MinimalStudio",
+      "category": "light",
+      "description": "Clean and minimal light theme that reduces visual clutter while maintaining functionality. Features subtle shadows and gentle transitions for a calming experience.",
+      "featured": true,
+      "preview_image": "configs/light-minimal/preview.png",
+      "screenshots": [
+        "configs/light-minimal/screenshots/screenshot_1.png"
+      ],
+      "download_url": "configs/light-minimal/config.json",
+      "download_count": 892,
+      "created_at": "2024-11-28T14:15:00Z",
+      "issue_number": null
+    },
+    {
+      "id": "vibrant-colors",
+      "name": "Vibrant Colors",
+      "author": "ColorMaster",
+      "category": "colorful",
+      "description": "Bold and vibrant theme with beautiful gradient effects and eye-catching animations. Brings personality and energy to your desktop with carefully selected color palettes.",
+      "featured": false,
+      "preview_image": "configs/vibrant-colors/preview.png",
+      "screenshots": [
+        "configs/vibrant-colors/screenshots/screenshot_1.png",
+        "configs/vibrant-colors/screenshots/screenshot_2.png",
+        "configs/vibrant-colors/screenshots/screenshot_3.png"
+      ],
+      "download_url": "configs/vibrant-colors/config.json",
+      "download_count": 634,
+      "created_at": "2024-11-25T09:45:00Z",
+      "issue_number": null
+    },
+    {
+      "id": "professional-blue",
+      "name": "Professional Blue",
+      "author": "CorpDesign",
+      "category": "professional",
+      "description": "Professional blue theme perfect for business environments with subtle animations. Maintains a corporate aesthetic while providing modern functionality and elegant transitions.",
+      "featured": false,
+      "preview_image": "configs/professional-blue/preview.png",
+      "screenshots": [
+        "configs/professional-blue/screenshots/screenshot_1.png"
+      ],
+      "download_url": "configs/professional-blue/config.json",
+      "download_count": 421,
+      "created_at": "2024-11-20T16:20:00Z",
+      "issue_number": null
+    },
+    {
+      "id": "neon-dark",
+      "name": "Neon Dark",
+      "author": "NeonStudio",
+      "category": "gaming",
+      "description": "Futuristic dark theme with neon accents and glowing effects for a cyberpunk feel. Perfect for gamers and tech enthusiasts who want a cutting-edge aesthetic.",
+      "featured": false,
+      "preview_image": "configs/neon-dark/preview.png",
+      "screenshots": [
+        "configs/neon-dark/screenshots/screenshot_1.png",
+        "configs/neon-dark/screenshots/screenshot_2.png"
+      ],
+      "download_url": "configs/neon-dark/config.json",
+      "download_count": 789,
+      "created_at": "2024-11-18T11:30:00Z",
+      "issue_number": null
+    }
+  ]
+}
