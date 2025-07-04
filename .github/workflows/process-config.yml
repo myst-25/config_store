@@ -1,0 +1,297 @@
+name: Process Config Submission
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  process-config:
+    runs-on: ubuntu-latest
+    if: contains(github.event.issue.labels.*.name, 'config-submission')
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Parse Issue Body
+        id: parse
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const body = issue.body || '';
+            
+            // Parse YAML-style issue body
+            const parseField = (fieldName) => {
+              const regex = new RegExp(`${fieldName}:\\s*(.+?)(?=\\n\\w+:|$)`, 's');
+              const match = body.match(regex);
+              return match ? match[1].trim() : '';
+            };
+            
+            const configName = parseField('Config Name');
+            const author = parseField('Author');
+            const category = parseField('Category');
+            const description = parseField('Description');
+            const configJson = parseField('Configuration JSON');
+            const previewImage = parseField('Preview Image URL');
+            const screenshots = parseField('Additional Screenshots').split('\n').filter(url => url.trim());
+            
+            // Validate required fields
+            if (!configName || !author || !category || !description || !configJson || !previewImage) {
+              throw new Error('Missing required fields');
+            }
+            
+            // Validate JSON
+            try {
+              JSON.parse(configJson);
+            } catch (e) {
+              throw new Error('Invalid JSON configuration');
+            }
+            
+            // Generate config ID
+            const configId = configName.toLowerCase()
+              .replace(/[^a-z0-9\s-]/g, '')
+              .replace(/\s+/g, '-')
+              .replace(/-+/g, '-')
+              .trim('-');
+            
+            return {
+              configId,
+              configName,
+              author,
+              category,
+              description,
+              configJson,
+              previewImage,
+              screenshots: screenshots.filter(url => url.trim())
+            };
+      
+      - name: Create Config Directory
+        run: |
+          CONFIG_ID="${{ fromJson(steps.parse.outputs.result).configId }}"
+          mkdir -p "configs/$CONFIG_ID/screenshots"
+          
+      - name: Download Preview Image
+        run: |
+          CONFIG_ID="${{ fromJson(steps.parse.outputs.result).configId }}"
+          PREVIEW_URL="${{ fromJson(steps.parse.outputs.result).previewImage }}"
+          
+          # Download preview image
+          curl -L -o "configs/$CONFIG_ID/preview.png" "$PREVIEW_URL" || {
+            echo "Failed to download preview image"
+            exit 1
+          }
+          
+      - name: Download Screenshots
+        run: |
+          CONFIG_ID="${{ fromJson(steps.parse.outputs.result).configId }}"
+          SCREENSHOTS='${{ toJson(fromJson(steps.parse.outputs.result).screenshots) }}'
+          
+          if [ "$SCREENSHOTS" != "[]" ]; then
+            echo "$SCREENSHOTS" | jq -r '.[]' | while read -r url; do
+              if [ -n "$url" ]; then
+                filename=$(basename "$url" | sed 's/[^a-zA-Z0-9._-]//g')
+                curl -L -o "configs/$CONFIG_ID/screenshots/$filename" "$url" || true
+              fi
+            done
+          fi
+          
+      - name: Create Config JSON
+        run: |
+          CONFIG_ID="${{ fromJson(steps.parse.outputs.result).configId }}"
+          CONFIG_JSON='${{ fromJson(steps.parse.outputs.result).configJson }}'
+          
+          echo "$CONFIG_JSON" > "configs/$CONFIG_ID/config.json"
+          
+      - name: Update Configs Database
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const parsed = ${{ steps.parse.outputs.result }};
+            const configsPath = 'configs/configs.json';
+            
+            // Read existing configs
+            let configsData = { configs: [] };
+            if (fs.existsSync(configsPath)) {
+              try {
+                configsData = JSON.parse(fs.readFileSync(configsPath, 'utf8'));
+              } catch (e) {
+                console.log('Creating new configs database');
+              }
+            }
+            
+            // Check if config already exists
+            const existingIndex = configsData.configs.findIndex(c => c.id === parsed.configId);
+            
+            // Get screenshot files
+            const screenshotDir = `configs/${parsed.configId}/screenshots`;
+            let screenshots = [];
+            if (fs.existsSync(screenshotDir)) {
+              screenshots = fs.readdirSync(screenshotDir)
+                .filter(file => /\.(png|jpg|jpeg|gif|webp)$/i.test(file))
+                .map(file => `configs/${parsed.configId}/screenshots/${file}`);
+            }
+            
+            const newConfig = {
+              id: parsed.configId,
+              name: parsed.configName,
+              author: parsed.author,
+              category: parsed.category,
+              description: parsed.description,
+              featured: false,
+              preview_image: `configs/${parsed.configId}/preview.png`,
+              screenshots: screenshots,
+              download_url: `configs/${parsed.configId}/config.json`,
+              download_count: existingIndex >= 0 ? configsData.configs[existingIndex].download_count || 0 : 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+            
+            if (existingIndex >= 0) {
+              configsData.configs[existingIndex] = newConfig;
+            } else {
+              configsData.configs.push(newConfig);
+            }
+            
+            // Sort by featured, then by name
+            configsData.configs.sort((a, b) => {
+              if (a.featured && !b.featured) return -1;
+              if (!a.featured && b.featured) return 1;
+              return a.name.localeCompare(b.name);
+            });
+            
+            fs.writeFileSync(configsPath, JSON.stringify(configsData, null, 2));
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            Add config: ${{ fromJson(steps.parse.outputs.result).configName }}
+            
+            - Author: ${{ fromJson(steps.parse.outputs.result).author }}
+            - Category: ${{ fromJson(steps.parse.outputs.result).category }}
+            - Config ID: ${{ fromJson(steps.parse.outputs.result).configId }}
+          branch: config/${{ fromJson(steps.parse.outputs.result).configId }}
+          title: "🎨 Add Config: ${{ fromJson(steps.parse.outputs.result).configName }}"
+          body: |
+            ## New Config Submission
+            
+            **Config Name:** ${{ fromJson(steps.parse.outputs.result).configName }}  
+            **Author:** ${{ fromJson(steps.parse.outputs.result).author }}  
+            **Category:** ${{ fromJson(steps.parse.outputs.result).category }}
+            
+            **Description:**
+            ${{ fromJson(steps.parse.outputs.result).description }}
+            
+            ---
+            
+            ### 📁 Files Added:
+            - `configs/${{ fromJson(steps.parse.outputs.result).configId }}/config.json` - Configuration file
+            - `configs/${{ fromJson(steps.parse.outputs.result).configId }}/preview.png` - Preview image
+            - `configs/${{ fromJson(steps.parse.outputs.result).configId }}/screenshots/` - Additional screenshots
+            - Updated `configs/configs.json` database
+            
+            ### ✅ Validation:
+            - [x] JSON configuration is valid
+            - [x] Preview image downloaded successfully
+            - [x] All required fields provided
+            - [x] Config ID generated: `${{ fromJson(steps.parse.outputs.result).configId }}`
+            
+            **Auto-generated from Issue #${{ github.event.issue.number }}**
+            
+            > Merge this PR to make the config live on the website!
+          labels: |
+            config-submission
+            automated-pr
+            
+      - name: Update Issue with Success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const parsed = ${{ steps.parse.outputs.result }};
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ✅ Config Processed Successfully!
+              
+**Your config "${parsed.configName}" has been processed and is ready for review.**
+
+### 📋 Summary:
+- **Config ID:** \`${parsed.configId}\`
+- **Author:** ${parsed.author}
+- **Category:** ${parsed.category}
+
+### 🔄 Next Steps:
+1. **Pull Request Created:** Check the [Pull Requests tab](https://github.com/${{ github.repository }}/pulls) for the auto-generated PR
+2. **Review & Merge:** Once the PR is merged, your config will be live on the site
+3. **Live Site:** Visit [https://myst-25.github.io/config_store](https://myst-25.github.io/config_store) to see your config
+
+### 📁 Files Created:
+- Configuration: \`configs/${parsed.configId}/config.json\`
+- Preview Image: \`configs/${parsed.configId}/preview.png\`
+- Screenshots: \`configs/${parsed.configId}/screenshots/\`
+
+**Thank you for contributing to the Config Store! 🎉**`
+            });
+            
+            // Close the issue
+            github.rest.issues.update({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed'
+            });
+      
+      - name: Update Issue with Error
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ❌ Config Processing Failed
+              
+There was an error processing your config submission. Please check the following:
+
+### Common Issues:
+- **Invalid JSON:** Ensure your configuration JSON is valid (test at [jsonlint.com](https://jsonlint.com))
+- **Image URLs:** Make sure image URLs are direct links and accessible
+- **Required Fields:** All fields in the form must be filled out
+
+### 🔍 Debug Information:
+Check the [Actions tab](https://github.com/${{ github.repository }}/actions) for detailed error logs.
+
+### 🔄 Next Steps:
+1. Fix the issues mentioned above
+2. Submit a new issue with the corrected information
+3. Or comment below with corrections and we'll help you troubleshoot
+
+**Need help?** Check our [discussions](https://github.com/${{ github.repository }}/discussions) or ask questions in the comments.`
+            });
+            
+            // Add error label
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['config-error']
+            });

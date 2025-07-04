@@ -1,0 +1,140 @@
+name: 🎨 Submit Breeze Shell Config
+description: Submit your beautiful Breeze Shell configuration to the store
+title: "[CONFIG] "
+labels: ["config-submission"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 🎨 Submit Your Breeze Shell Configuration
+        
+        Thank you for contributing to the Config Store! Please fill out all the information below to submit your configuration.
+        
+        ### 📋 Requirements:
+        - ✅ Valid Breeze Shell JSON configuration
+        - ✅ Preview image (upload to [imgur.com](https://imgur.com) or similar)
+        - ✅ Clear description of your theme
+        - ✅ Screenshots are recommended but optional
+        
+        ---
+
+  - type: input
+    id: config-name
+    attributes:
+      label: Config Name
+      description: The display name for your configuration
+      placeholder: "e.g., Dark Professional, Neon Gaming, Minimal Light"
+    validations:
+      required: true
+
+  - type: input
+    id: author
+    attributes:
+      label: Author
+      description: Your name or username
+      placeholder: "e.g., YourUsername"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: Select the category that best describes your config
+      options:
+        - dark
+        - light
+        - colorful
+        - professional
+        - gaming
+        - minimal
+        - creative
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Describe your configuration - what makes it special?
+      placeholder: "A beautiful dark theme with subtle animations and modern design elements. Perfect for developers who work in low-light environments."
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: config-json
+    attributes:
+      label: Configuration JSON
+      description: Paste your complete Breeze Shell configuration here
+      placeholder: |
+        {
+          "context_menu": {
+            "theme": {
+              "use_dwm_if_available": true,
+              "acrylic": true,
+              "radius": 16.0,
+              "font_size": 14.0,
+              ...
+            }
+          }
+        }
+      render: json
+    validations:
+      required: true
+
+  - type: input
+    id: preview-image
+    attributes:
+      label: Preview Image URL
+      description: Direct link to your main preview image (must end with .png, .jpg, etc.)
+      placeholder: "https://i.imgur.com/yourimage.png"
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Additional Screenshots
+      description: Optional additional screenshots (one URL per line)
+      placeholder: |
+        https://i.imgur.com/screenshot1.png
+        https://i.imgur.com/screenshot2.png
+        https://i.imgur.com/screenshot3.png
+      render: text
+    validations:
+      required: false
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        
+        ### 🚀 What happens next?
+        
+        1. **Automatic Processing:** Our GitHub Actions will validate your JSON and download images
+        2. **Pull Request:** A PR will be auto-generated for review
+        3. **Live Site:** Once merged, your config will appear on the website!
+        
+        ### 💡 Tips:
+        - Test your JSON at [jsonlint.com](https://jsonlint.com) before submitting
+        - Use [imgur.com](https://imgur.com) for reliable image hosting
+        - Take screenshots of your theme in different contexts
+        - Write a compelling description to help users discover your theme
+        
+        **Thank you for contributing to the Breeze Shell community!** 🎉
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Submission Agreement
+      description: Please confirm the following
+      options:
+        - label: I confirm this is my original work or I have permission to share it
+          required: true
+        - label: I agree to make this configuration freely available to the community
+          required: true
+        - label: I have tested this configuration and it works properly
+          required: true
